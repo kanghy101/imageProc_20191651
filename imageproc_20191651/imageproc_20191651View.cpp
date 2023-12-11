@@ -670,7 +670,7 @@ void Cimageproc20191651View::OnRegionPrewitt()
 	int rvalue, gvalue, bvalue;
 
 	float kernel_h[3][3] = { {-1, -1, -1}, {0, 0, 0}, {1, 1, 1} };
-	float kernel_v[3][3] = { {-1, 0, -1}, {-1, 0, 1}, {-1, 0, 1} };
+	float kernel_v[3][3] = { {-1, 0, -1}, {1, 0, -1}, {1, 0, -1} };
 
 	unsigned char** Er, ** Ec;
 	// 메모리 할당
@@ -688,7 +688,7 @@ void Cimageproc20191651View::OnRegionPrewitt()
 	for (y = 0; y < pDoc->ImageHeight; y++)
 		for (x = 0; x < pDoc->ImageWidth; x++) {
 			if (pDoc->depth == 1) {
-				value = sqrt((Er[y][x] - 128) * (Er[y][x] * 128) + (Er[y][x] - 128));
+				value = sqrt((Er[y][x] - 128) * (Er[y][x] - 128) + (Er[y][x] - 128) * (Er[y][x] - 128));
 
 				if (value > 255) value = 255;
 				else if (value < 0) value = 0;
@@ -700,6 +700,8 @@ void Cimageproc20191651View::OnRegionPrewitt()
 				rvalue = sqrt((Er[y][x * 3 + 0] - 128) * (Er[y][x * 3 + 0] - 128) + (Ec[y][x * 3 + 0] - 128) * (Ec[y][x * 3 + 0] - 128));
 				gvalue = sqrt((Er[y][x * 3 + 1] - 128) * (Er[y][x * 3 + 1] - 128) + (Ec[y][x * 3 + 1] - 128) * (Ec[y][x * 3 + 1] - 128));
 				bvalue = sqrt((Er[y][x * 3 + 2] - 128) * (Er[y][x * 3 + 2] - 128) + (Ec[y][x * 3 + 2] - 128) * (Ec[y][x * 3 + 2] - 128));
+
+				value = sqrt(rvalue * rvalue + gvalue * gvalue + bvalue * bvalue);
 
 				if (value > 255) value = 255;
 				else if (value < 0) value = 0;
@@ -844,31 +846,116 @@ void Cimageproc20191651View::OnRegionMedianFiltering()
 	int temp;
 
 	for (y = 1; y < pDoc->ImageHeight - 1; y++)
-		for (x = 1; x < pDoc->ImageWidth - 1; x++) {
-			n[0] = pDoc->InputIMG[y - 1][x - 1];
-			n[1] = pDoc->InputIMG[y - 1][x - 0];
-			n[2] = pDoc->InputIMG[y - 1][x + 1];
+		for (x = 1; x < pDoc->ImageWidth - 1; x++)
+		{
+			if (pDoc->depth == 1)
+			{
+				n[0] = pDoc->InputIMG[y - 1][x - 1];
+				n[1] = pDoc->InputIMG[y - 1][x + 0];
+				n[2] = pDoc->InputIMG[y - 1][x + 1];
 
-			n[3] = pDoc->InputIMG[y - 0][x - 1];
-			n[4] = pDoc->InputIMG[y - 0][x - 0];
-			n[5] = pDoc->InputIMG[y - 0][x + 1];
+				n[3] = pDoc->InputIMG[y - 0][x - 1];
+				n[4] = pDoc->InputIMG[y - 0][x + 0];
+				n[5] = pDoc->InputIMG[y - 0][x + 1];
 
-			n[6] = pDoc->InputIMG[y + 1][x - 1];
-			n[7] = pDoc->InputIMG[y + 1][x - 0];
-			n[8] = pDoc->InputIMG[y + 1][x + 1];
+				n[6] = pDoc->InputIMG[y + 1][x - 1];
+				n[7] = pDoc->InputIMG[y + 1][x + 0];
+				n[8] = pDoc->InputIMG[y + 1][x + 1];
 
-			//버블정렬(오름차순)
-			for(i = 8; i > 0; i--)
-				for (j = 0; j < i; j++) {
-					if (n[j] > n[j + 1])
+				//버블정렬(오름차순)
+				for (i = 8; i > 0; i--)
+					for (j = 0; j < i; j++)
 					{
-						temp = n[j + 1];
-						n[j + 1] = n[j];
-						n[j] = temp;
+						if (n[j] > n[j + 1])
+						{
+							temp = n[j + 1];
+							n[j + 1] = n[j];
+							n[j] = temp;
+						}
 					}
-				}
 
-			pDoc->ResultIMG[y][x] = n[4];
+				pDoc->ResultIMG[y][x] = n[4];
+			}
+			else
+			{
+				n[0] = pDoc->InputIMG[y - 1][(x - 1) * 3 + 0];
+				n[1] = pDoc->InputIMG[y - 1][(x + 0) * 3 + 0];
+				n[2] = pDoc->InputIMG[y - 1][(x + 1) * 3 + 0];
+
+				n[3] = pDoc->InputIMG[y - 0][(x - 1) * 3 + 0];
+				n[4] = pDoc->InputIMG[y - 0][(x + 0) * 3 + 0];
+				n[5] = pDoc->InputIMG[y - 0][(x + 1) * 3 + 0];
+
+				n[6] = pDoc->InputIMG[y + 1][(x - 1) * 3 + 0];
+				n[7] = pDoc->InputIMG[y + 1][(x + 0) * 3 + 0];
+				n[8] = pDoc->InputIMG[y + 1][(x + 1) * 3 + 0];
+
+				//버블정렬(오름차순)
+				for (i = 8; i > 0; i--)
+					for (j = 0; j < i; j++)
+					{
+						if (n[j] > n[j + 1])
+						{
+							temp = n[j + 1];
+							n[j + 1] = n[j];
+							n[j] = temp;
+						}
+					}
+
+				pDoc->ResultIMG[y][x * 3 + 0] = n[4];
+
+				n[0] = pDoc->InputIMG[y - 1][(x - 1) * 3 + 1];
+				n[1] = pDoc->InputIMG[y - 1][(x + 0) * 3 + 1];
+				n[2] = pDoc->InputIMG[y - 1][(x + 1) * 3 + 1];
+
+				n[3] = pDoc->InputIMG[y - 0][(x - 1) * 3 + 1];
+				n[4] = pDoc->InputIMG[y - 0][(x + 0) * 3 + 1];
+				n[5] = pDoc->InputIMG[y - 0][(x + 1) * 3 + 1];
+
+				n[6] = pDoc->InputIMG[y + 1][(x - 1) * 3 + 1];
+				n[7] = pDoc->InputIMG[y + 1][(x + 0) * 3 + 1];
+				n[8] = pDoc->InputIMG[y + 1][(x + 1) * 3 + 1];
+
+				//버블정렬(오름차순)
+				for (i = 8; i > 0; i--)
+					for (j = 0; j < i; j++)
+					{
+						if (n[j] > n[j + 1])
+						{
+							temp = n[j + 1];
+							n[j + 1] = n[j];
+							n[j] = temp;
+						}
+					}
+
+				pDoc->ResultIMG[y][x * 3 + 1] = n[4];
+
+				n[0] = pDoc->InputIMG[y - 1][(x - 1) * 3 + 2];
+				n[1] = pDoc->InputIMG[y - 1][(x + 0) * 3 + 2];
+				n[2] = pDoc->InputIMG[y - 1][(x + 1) * 3 + 2];
+
+				n[3] = pDoc->InputIMG[y - 0][(x - 1) * 3 + 2];
+				n[4] = pDoc->InputIMG[y - 0][(x + 0) * 3 + 2];
+				n[5] = pDoc->InputIMG[y - 0][(x + 1) * 3 + 2];
+
+				n[6] = pDoc->InputIMG[y + 1][(x - 1) * 3 + 2];
+				n[7] = pDoc->InputIMG[y + 1][(x + 0) * 3 + 2];
+				n[8] = pDoc->InputIMG[y + 1][(x + 1) * 3 + 2];
+
+				//버블정렬(오름차순)
+				for (i = 8; i > 0; i--)
+					for (j = 0; j < i; j++)
+					{
+						if (n[j] > n[j + 1])
+						{
+							temp = n[j + 1];
+							n[j + 1] = n[j];
+							n[j] = temp;
+						}
+					}
+
+				pDoc->ResultIMG[y][x * 3 + 2] = n[4];
+			}
 		}
 
 	Invalidate();
@@ -1606,7 +1693,7 @@ void Cimageproc20191651View::OnLButtonUp(UINT nFlags, CPoint point)
 void Cimageproc20191651View::OnAviView()
 {
 	// TODO: 여기에 명령 처리기 코드를 추가합니다.
-	CFileDialog dlg(true, "", "", OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, "AVI파일(*.avi) | .avi | .AVI | 모든 파일 | *.*|");
+	CFileDialog dlg(true, "", "", OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, "AVI파일(*.avi) | .avi | 모든 파일(*.*) | *.*|");
 
 	if (dlg.DoModal() == IDOK)
 	{
