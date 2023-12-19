@@ -13,6 +13,7 @@
 #include "imageproc_20191651Doc.h"
 #include "imageproc_20191651View.h"
 #include "CAngleInputDialog.h"
+#include "COpenCVDlg.h"
 
 #include <vfw.h>
 #ifdef _DEBUG
@@ -62,6 +63,7 @@ ON_COMMAND(ID_GEOMETRY_WARPING, &Cimageproc20191651View::OnGeometryWarping)
 ON_WM_LBUTTONDOWN()
 ON_WM_LBUTTONUP()
 ON_COMMAND(ID_AVI_VIEW, &Cimageproc20191651View::OnAviView)
+ON_COMMAND(ID_OPENCV_VIEW, &Cimageproc20191651View::OnOpencvView)
 END_MESSAGE_MAP()
 
 // Cimageproc20191651View 생성/소멸
@@ -441,8 +443,49 @@ void Cimageproc20191651View::OnPixelHistoEq()
 void Cimageproc20191651View::OnPixelContrastStretching()
 {
 	// TODO: 여기에 명령 처리기 코드를 추가합니다.
-	//Cimageproc20191651Doc* pDoc = GetDocument();
+	Cimageproc20191651Doc* pDoc = GetDocument();
 
+	int min = 256, max = -1;
+	int rmin = 256, rmax = -1, gmin = 256, gmax = -1, bmin = 256, bmax = -1;
+	int x, y, p;
+
+	for (y = 0; y < 256; y++) {
+		for (x = 0; x < 256; x++) {
+			if (pDoc->depth == 1) {    //흑백 이미지
+				if (pDoc->InputIMG[y][x] < min) min = pDoc->InputIMG[y][x];
+				if (pDoc->InputIMG[y][x] > max) max = pDoc->InputIMG[y][x];
+			}
+			else {    //컬러 이미지
+				if (pDoc->InputIMG[y][x * 3 + 0] < rmin) rmin = pDoc->InputIMG[y][x * 3 + 0];
+				if (pDoc->InputIMG[y][x * 3 + 0] > rmax) rmax = pDoc->InputIMG[y][x * 3 + 0];
+
+				if (pDoc->InputIMG[y][x * 3 + 1] < gmin) gmin = pDoc->InputIMG[y][x * 3 + 1];
+				if (pDoc->InputIMG[y][x * 3 + 1] > gmax) gmax = pDoc->InputIMG[y][x * 3 + 1];
+
+				if (pDoc->InputIMG[y][x * 3 + 2] < bmin) bmin = pDoc->InputIMG[y][x * 3 + 2];
+				if (pDoc->InputIMG[y][x * 3 + 2] > bmax) bmax = pDoc->InputIMG[y][x * 3 + 2];
+			}
+		}
+	}
+	for (y = 0; y < 256; y++) {
+		for (x = 0; x < 256; x++) {
+			if (pDoc->depth == 1) {    //흑백 이미지
+				p = pDoc->InputIMG[y][x];
+				pDoc->ResultIMG[y][x] = (float)(p - min) / (max - min) * 255;
+			}
+			else {    //컬러 이미지
+				p = pDoc->InputIMG[y][x * 3 + 0];
+				pDoc->ResultIMG[y][x * 3 + 0] = (float)(p - rmin) / (rmax - rmin) * 255;
+
+				p = pDoc->InputIMG[y][x * 3 + 1];
+				pDoc->ResultIMG[y][x * 3 + 1] = (float)(p - gmin) / (gmax - gmin) * 255;
+
+				p = pDoc->InputIMG[y][x * 3 + 2];
+				pDoc->ResultIMG[y][x * 3 + 2] = (float)(p - bmin) / (bmax - bmin) * 255;
+			}
+		}
+	}
+	Invalidate();
 }
 
 
@@ -727,6 +770,65 @@ void Cimageproc20191651View::OnRegionPrewitt()
 void Cimageproc20191651View::OnRegionRoberts()
 {
 	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+	Cimageproc20191651Doc* pDoc = GetDocument();
+
+	float kernel_h[3][3] = { {-1, 0, 0}, {0, 1, 0}, {0, 0, 0} };
+	float kernel_v[3][3] = { {0, -0, -1}, {0, 1, 0}, {0, 0, 0} };
+
+	unsigned char** Er, ** Ec;
+	int x, y, i;
+	int value;
+	int rvalue, gvalue, bvalue;
+
+	Er = (unsigned char**)malloc(pDoc->ImageHeight * sizeof(unsigned char*));
+	Ec = (unsigned char**)malloc(pDoc->ImageHeight * sizeof(unsigned char*));
+	for (i = 0; i < pDoc->ImageHeight; i++) {
+		Er[i] = (unsigned char*)malloc(pDoc->ImageWidth * pDoc->depth);
+		Ec[i] = (unsigned char*)malloc(pDoc->ImageWidth * pDoc->depth);
+	}
+
+	convolve(pDoc->InputIMG, Er, pDoc->ImageWidth, pDoc->ImageHeight, kernel_h, 128, pDoc->depth);
+	convolve(pDoc->InputIMG, Ec, pDoc->ImageWidth, pDoc->ImageHeight, kernel_v, 128, pDoc->depth);
+
+
+
+
+	for (y = 0; y < pDoc->ImageHeight; y++)
+		for (x = 0; x < pDoc->ImageWidth; x++)
+		{
+			if (pDoc->depth == 1)
+			{
+				value = sqrt((Er[y][x] - 128) * (Er[y][x] - 128) + (Ec[y][x] - 128) * (Ec[y][x] - 128));
+				if (value > 255)    value = 255;
+				else if (value < 0) value = 0;
+				pDoc->ResultIMG[y][x] = value;
+			}
+			else
+			{
+				rvalue = sqrt((Er[y][3 * x + 0] - 128) * (Er[y][3 * x + 0] - 128) + (Ec[y][3 * x + 0] - 128) * (Ec[y][3 * x + 0] - 128));
+				gvalue = sqrt((Er[y][3 * x + 1] - 128) * (Er[y][3 * x + 1] - 128) + (Ec[y][3 * x + 1] - 128) * (Ec[y][3 * x + 1] - 128));
+				bvalue = sqrt((Er[y][3 * x + 2] - 128) * (Er[y][3 * x + 2] - 128) + (Ec[y][3 * x + 2] - 128) * (Ec[y][3 * x + 2] - 128));
+
+				value = sqrt(rvalue * rvalue + gvalue * gvalue + bvalue * bvalue);
+				if (value > 255)    value = 255;
+				else if (value < 0) value = 0;
+				pDoc->ResultIMG[y][3 * x + 0] = value;
+				pDoc->ResultIMG[y][3 * x + 1] = value;
+				pDoc->ResultIMG[y][3 * x + 2] = value;
+			}
+		}
+
+	//메모리 삭제
+	for (i = 0; i < pDoc->ImageHeight; i++)
+	{
+		free(Er[i]);
+		free(Ec[i]);
+	}
+	free(Er);
+	free(Ec);
+
+	Invalidate();
+
 }
 
 
@@ -1373,8 +1475,8 @@ void Cimageproc20191651View::OnGeometryAvgSampling()
 	}
 
 	// 전방향 사상
-	for (y = 0; y < pDoc->ImageHeight; y += yscale)
-		for (x = 0; x < pDoc->ImageWidth; x += xscale) {
+	for (y = 0; y < pDoc->ImageHeight - yscale; y += yscale)
+		for (x = 0; x < pDoc->ImageWidth - xscale; x += xscale) {
 			sum = 0, rsum = 0, gsum = 0, bsum = 0;
 			for(j = 0; j < yscale; j++)
 				for (i = 0; i < xscale; i++) {
@@ -1422,6 +1524,15 @@ void Cimageproc20191651View::OnGeometryRotation()
 	if (dlg.DoModal() == IDCANCEL) return;
 	angle = dlg.m_iAngle;
 
+	radian = 2 * PI / 360 * angle;
+	
+	// y의 마지막 좌표
+	Oy = pDoc->ImageHeight - 1;
+
+	// 중심점
+	Cx = pDoc->ImageWidth / 2;
+	Cy = pDoc->ImageHeight / 2;
+
 	if (pDoc->gResultIMG != NULL) // 메모리가 할당되어 있으면 전부 삭제
 	{
 		for (i = 0; i < pDoc->gImageHeight; i++)
@@ -1429,9 +1540,8 @@ void Cimageproc20191651View::OnGeometryRotation()
 		free(pDoc->gResultIMG);
 	}
 
-	radian = 2 * PI / 360 * angle;
-	pDoc->gImageWidth = pDoc->ImageHeight * fabs(cos(PI / 2 - radian)) + pDoc->ImageWidth * fabs(cos(radian));
-	pDoc->gImageHeight = pDoc->ImageHeight * fabs(cos(radian)) + pDoc->ImageHeight * fabs(cos(PI / 2 - radian));
+	pDoc->gImageWidth = pDoc->ImageWidth * fabs(cos(PI / 2 - radian)) + pDoc->ImageWidth * fabs(cos(radian));
+	pDoc->gImageHeight = pDoc->ImageHeight * fabs(cos(radian)) + pDoc->ImageWidth * fabs(cos(PI / 2 - radian));
 
 	// 메모리 할당
 	pDoc->gResultIMG = (unsigned char**)malloc(pDoc->gImageHeight * sizeof(unsigned char*));
@@ -1440,11 +1550,6 @@ void Cimageproc20191651View::OnGeometryRotation()
 		pDoc->gResultIMG[i] = (unsigned char*)malloc(pDoc->gImageWidth * pDoc->depth);
 	}
 
-	// 중심점
-	Cx = pDoc->ImageWidth / 2; Cy = pDoc->ImageHeight / 2;
-
-	// y의 마지막 좌표
-	Oy = pDoc->ImageHeight - 1;
 	xdiff = (pDoc->gImageWidth - pDoc->ImageWidth) / 2;
 	ydiff = (pDoc->gImageHeight - pDoc->ImageHeight) / 2;
 
@@ -1459,7 +1564,7 @@ void Cimageproc20191651View::OnGeometryRotation()
 			{
 				if (x_source < 0 || x_source > pDoc->ImageWidth - 1 ||
 					y_source < 0 || y_source > pDoc->ImageHeight - 1)
-					pDoc->gResultIMG[y + ydiff][x + xdiff] = 255;
+					pDoc->gResultIMG[y + ydiff][x + xdiff] = 0;
 				else
 					pDoc->gResultIMG[y + ydiff][x + xdiff] = pDoc->InputIMG[y_source][x_source];
 			}
@@ -1752,4 +1857,11 @@ void Cimageproc20191651View::LoadAviFile(CDC* pDC)
 			}
 		}
 	}
+}
+
+void Cimageproc20191651View::OnOpencvView()
+{
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+	COpenCVDlg dlg;
+	dlg.DoModal();
 }

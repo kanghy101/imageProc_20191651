@@ -3,12 +3,16 @@
 // imageproc20191651.rc에서 사용되고 있습니다.
 //
 #define IDOK2                           2
+#define IDC_BUTTON_FILE_SELECT          3
+#define IDC_BUTTON_VIDEO                4
+#define IDC_BUTTON_CAMERA               5
 #define IDD_ABOUTBOX                    100
 #define IDP_OLE_INIT_FAILED             100
 #define IDR_MAINFRAME                   128
 #define IDR_imageproc20191651TYPE       130
 #define ID_WINDOW_MANAGER               131
 #define IDD_DIALOG1                     311
+#define IDD_DIALOG_OPENCV               313
 #define IDC_EDIT_ANGLE                  1000
 #define ID_32771                        32771
 #define ID_MENUTEST                     32772
@@ -87,14 +91,17 @@
 #define ID_GEOMETRY_WARPING             32845
 #define ID_AVI32846                     32846
 #define ID_AVI_VIEW                     32847
+#define ID_OPENCV32848                  32848
+#define OPENCV                          32849
+#define ID_OPENCV_VIEW                  32850
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        313
-#define _APS_NEXT_COMMAND_VALUE         32848
-#define _APS_NEXT_CONTROL_VALUE         1001
+#define _APS_NEXT_RESOURCE_VALUE        315
+#define _APS_NEXT_COMMAND_VALUE         32851
+#define _APS_NEXT_CONTROL_VALUE         1003
 #define _APS_NEXT_SYMED_VALUE           310
 #endif
 #endif
